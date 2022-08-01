@@ -16,6 +16,19 @@ gpgkey=https://www.mongodb.org/static/pgp/server-6.0.asc" | sudo tee /etc/yum.re
     sudo systemctl start mongod
 }
 
+install_elasticsearch() {
+    echo "[elasticsearch-8.x]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md" | sudo tee /etc/yum.repos.d/elasticsearch.repo > /dev/null
+    sudo yum install -y elasticsearch
+    sudo systemctl start elasticsearch
+}
+
 install_graviteeio() {
     echo "[graviteeio]
 name=graviteeio
@@ -27,22 +40,31 @@ sslverify=1
 sslcacert=/etc/pki/tls/certs/ca-bundle.crt
 metadata_expire=300" | sudo tee /etc/yum.repos.d/graviteeio.repo > /dev/null
     sudo yum -q makecache -y --disablerepo='*' --enablerepo='graviteeio'
-    sudo yum install -y graviteeio-am-3x
+    sudo yum install -y graviteeio-apim-3x
     sudo systemctl daemon-reload
-    sudo systemctl start graviteeio-am-gateway graviteeio-am-management-api
-    sudo sed -i -e "s/4200/8094/g" /opt/graviteeio/am/management-ui/constants.json
+    sudo systemctl start graviteeio-apim-gateway graviteeio-apim-rest-api
     http_response=$(curl -w "%{http_code}" -o /tmp/curl_body "http://169.254.169.254/latest/meta-data/public-ipv4")
     if [ $http_response == "200" ]; then
-        sudo sed -i -e "s/localhost/$(cat /tmp/curl_body)/g" /opt/graviteeio/am/management-ui/constants.json
+        sudo sed -i -e "s/localhost/$(cat /tmp/curl_body)/g" /opt/graviteeio/apim/management-ui/constants.json
+        sudo sed -i -e "s;/portal;http://$(cat /tmp/curl_body):8083/portal;g" /opt/graviteeio/apim/portal-ui/assets/config.json
     fi
 
-    ui_port=$(sudo semanage port -l | grep 8094 | wc -l)
+    ui_port=$(sudo semanage port -l | grep 8084 | wc -l)
     if [[ "$ui_port" -eq 0 ]]
     then
-        sudo semanage port -a -t http_port_t -p tcp 8094
+        sudo semanage port -a -t http_port_t -p tcp 8084
     else
-        sudo semanage port -m -t http_port_t -p tcp 8094
+        sudo semanage port -m -t http_port_t -p tcp 8084
     fi
+
+    portal_port=$(sudo semanage port -l | grep 8085 | wc -l)
+    if [[ "$portal_port" -eq 0 ]]
+    then
+        sudo semanage port -a -t http_port_t -p tcp 8085
+    else
+        sudo semanage port -m -t http_port_t -p tcp 8085
+    fi
+
     sudo systemctl restart nginx
 }
 
@@ -77,6 +99,7 @@ main() {
     install_openjdk
     install_nginx
     install_mongo
+    install_elasticsearch
     install_graviteeio
 }
 
