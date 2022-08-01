@@ -111,6 +111,7 @@ install()
 			curl -L https://raw.githubusercontent.com/gravitee-io/scripts/master/apim/3.x/amzn/install_amzn_${dist}.sh | bash
 		;;
 		ol|centos|rhel)
+		        echo "Detected operating system as ${os} flow for install"
 			curl -L https://raw.githubusercontent.com/MohanDevarajan01/Learn01/main/install_redhat.sh | bash
 		;;
     sles)
