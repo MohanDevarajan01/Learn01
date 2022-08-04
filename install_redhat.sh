@@ -68,10 +68,6 @@ metadata_expire=300" | sudo tee /etc/yum.repos.d/graviteeio.repo > /dev/null
     sudo systemctl restart nginx
 }
 
-install_openjdk() {
-    sudo yum install -y java-11-openjdk-devel
-}
-
 install_tools() {
     os=`cat /etc/redhat-release  | awk '{ print tolower($1) }'`
     version=$(awk -F'=' '/VERSION_ID/{ gsub(/"/,""); print $2}' /etc/os-release | cut -d. -f1)
